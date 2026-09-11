@@ -1,5 +1,7 @@
 using System;
+using System.Buffers;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
 using StreamUllrIO;
@@ -10,8 +12,13 @@ public struct Job
 {
     public int JobId;
     public int FunctionId;
-    public int PayloadOffset;
-    public int PayloadLength;
+    public byte[] payload;
+};
+
+public struct JobResult
+{
+    public int JobId;
+    public object? Result;
 };
 
 public struct Mac
@@ -24,12 +31,10 @@ public struct RegisteredFunction
     public int FunctionId; //To find it in the array
     public JobCallback Callback; //Function execution
     public Delegate DelegateInfer;
-    public int TotalArgSize;
 };
 
-public class JobHandlerAttrAttribute : Attribute
-{
-}
+public class JobHandlerAttrAttribute : Attribute { }
+
 
 //TODO(ullr): Implement C# source generators for maximum efficiency at compile-time
 public static class JobHandler
@@ -40,39 +45,25 @@ public static class JobHandler
 
     private static byte[] payloadArr = new byte[1024];
 
-    //TODO(ullr): Create the woker and queue
+    private static int _nextJobId = 0;
+
+
+    //NOTE: Concurrenc and Workers
+    private static ConcurrentQueue<Job> jobQueue = new();
+    private static readonly object queueLock = new();
+    private static bool isRunning = true;
 
     public static int Main(string[] args)
     {
         List<RegisteredFunction> functions = new List<RegisteredFunction>();
         StoreAttributeFuncMetadata(functions);
         functionTable = functions.ToArray();
-        CreateJob(Add);
-        /*
-        UllrMemoryStream stream = new();
-        UllrIO.WriteInt(stream, 5);
-        UllrIO.WriteInt(stream, 13);
-        byte[] data = stream.ToArray();
-        ReadOnlyMemory<byte> payload = data;
+        StartWorkers(2);
 
-        functionTable[0].Callback(payload);
-
+        CreateJob(Add, 1,2);
         Mac mac = new Mac{Name = "cas"};
         var macs = new List<Mac> {mac};
-        stream = new();
-        UllrIO.SerializeValue(stream, "Hello", typeof(string));
-
-        // Then serialize your List<Job>
-        UllrIO.SerializeValue(
-            stream,
-            macs,
-            typeof(List<Mac>));
-
-        payload = stream.ToArray();
-
-        data = stream.ToArray();
-        Console.WriteLine(functionTable[1].Callback(payload));
-        */
+        CreateJob(StringPrueba, "hola", macs);
 
         return 0;
     }
@@ -212,18 +203,93 @@ public static class JobHandler
                 stream);
     }
 
-    //TODO(ullr): Create the wrap for the Function calls from the List
+    //TODO(ullr): Create the jobId and ResultQueue implementation
     private static void CreateJob<TDelegate>(TDelegate callback, params object[] args) where TDelegate : Delegate
     {
+        UllrMemoryStream stream = new();
+
+        foreach (var arg in args)
+        {
+            UllrIO.Serialize(stream, arg);
+        }
+
        foreach (var registered in functionTable) 
        {
            if (registered.DelegateInfer == callback)
            {
+               int jobId = Interlocked.Increment(ref _nextJobId);
                Job job = new();
+               job.JobId = jobId;
                job.FunctionId = registered.FunctionId;
-               job.PayloadLength
+               job.payload = stream.ToArray();
+
+               jobQueue.Enqueue(job);
+
+               lock(queueLock)
+               {
+                   Monitor.Pulse(queueLock);
+               }
+               break;
            }
        }
+    }
+
+    private static void StartWorkers(int workersNum)
+    {
+        isRunning = true;
+        AppDomain.CurrentDomain.ProcessExit += (sender, e) => OnClientProcessExit();
+        for (int i = 0; i < workersNum; i++)
+        {
+            int workerId = i;
+            Thread t = new Thread(() => WorkerLoop(workerId)) {IsBackground = true};
+            t.Start();
+        }
+        Console.WriteLine("Workers initialized");
+    }
+
+    private static void WorkerLoop(int workerId)
+    {
+        while (isRunning)
+        {
+            Job job;
+            bool hasJob = false;
+
+            lock (queueLock)
+            {
+                while (jobQueue.IsEmpty && isRunning)
+                {
+                    Monitor.Wait(queueLock);
+                }
+
+                if(!isRunning) break;
+
+                hasJob = jobQueue.TryDequeue(out job);
+            }
+            if (hasJob)
+            {
+                try
+                {
+                    var registered = functionTable[job.FunctionId];
+                    var payloadSegment = new ReadOnlyMemory<byte>(job.payload, 0, job.payload.Length);
+                    registered.Callback(payloadSegment);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Worker {workerId} Error: {ex.Message}");
+                }
+            }
+        }
+    }
+
+    public static void OnClientProcessExit()
+    {
+        lock (queueLock)
+        {
+            isRunning = false;
+
+            Monitor.PulseAll(queueLock);
+        }
+        Console.WriteLine("Closing all workers");
     }
 
     //TODO(ullr): Create the woker and queue functionality
@@ -231,6 +297,7 @@ public static class JobHandler
     [JobHandlerAttr]
     private static int Add(int x, int y)
     {
+        Console.WriteLine(x+y);
         return x + y;
     }
 

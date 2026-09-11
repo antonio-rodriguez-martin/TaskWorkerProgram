@@ -91,6 +91,11 @@ namespace StreamUllrIO
 
             _position += value.Length;
         }
+
+        public int GetLength()
+        {
+            return _data.Length;
+        }
     }
 
     public static class UllrIO
