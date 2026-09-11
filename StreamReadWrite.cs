@@ -2,6 +2,7 @@ using System;
 using System.Text;
 using System.Reflection;
 using System.Collections.Generic;
+using StreamUllrIO;
 
 namespace StreamUllrIO
 {
@@ -12,18 +13,18 @@ namespace StreamUllrIO
         End,
     }
 
-    public class MemoryStream
+    public class UllrMemoryStream
     {
         private byte[] _data;
         private int _position;
 
-        public MemoryStream()
+        public UllrMemoryStream()
         {
             _data = Array.Empty<byte>();
             _position = 0;
         }
 
-        public MemoryStream(byte[] value)
+        public UllrMemoryStream(byte[] value)
         {
             _data = value;
             _position = 0;
@@ -94,17 +95,17 @@ namespace StreamUllrIO
 
     public static class UllrIO
     {
-        public static int Seek(MemoryStream s, int offset, SeekFrom seekFrom)
+        public static int Seek(UllrMemoryStream s, int offset, SeekFrom seekFrom)
         {
             return s.Seek(offset, seekFrom);
         }
         
-        public static byte[] ReadUnchecked(MemoryStream s, int count)
+        public static byte[] ReadUnchecked(UllrMemoryStream s, int count)
         {
             return s.Read(count);
         }
 
-        public static byte[] Read(MemoryStream s, int count)
+        public static byte[] Read(UllrMemoryStream s, int count)
         {
             if (count < 0)
                 throw new ArgumentOutOfRangeException(nameof(count));
@@ -121,7 +122,7 @@ namespace StreamUllrIO
             return result;
         }
 
-        public static void Write(MemoryStream s, byte[] value)
+        public static void Write(UllrMemoryStream s, byte[] value)
         {
            s.Write(value); 
         }
@@ -130,13 +131,13 @@ namespace StreamUllrIO
         // Byte
         // ------------------------------------------------------------
 
-        public static byte ReadByte(MemoryStream s)
+        public static byte ReadByte(UllrMemoryStream s)
         {
             return Read(s, 1)[0];
         }
 
         public static void WriteByte(
-            MemoryStream s,
+            UllrMemoryStream s,
             byte value)
         {
             Write(s, new[] { value });
@@ -146,13 +147,13 @@ namespace StreamUllrIO
         // SByte
         // ------------------------------------------------------------
 
-        public static sbyte ReadSByte(MemoryStream s)
+        public static sbyte ReadSByte(UllrMemoryStream s)
         {
             return unchecked((sbyte)ReadByte(s));
         }
 
         public static void WriteSByte(
-            MemoryStream s,
+            UllrMemoryStream s,
             sbyte value)
         {
             WriteByte(s, unchecked((byte)value));
@@ -162,13 +163,13 @@ namespace StreamUllrIO
         // Bool
         // ------------------------------------------------------------
 
-        public static bool ReadBool(MemoryStream s)
+        public static bool ReadBool(UllrMemoryStream s)
         {
             return ReadByte(s) != 0;
         }
 
         public static void WriteBool(
-            MemoryStream s,
+            UllrMemoryStream s,
             bool value)
         {
             WriteByte(s, value ? (byte)1 : (byte)0);
@@ -178,7 +179,7 @@ namespace StreamUllrIO
         // Short
         // ------------------------------------------------------------
 
-        public static short ReadShort(MemoryStream s)
+        public static short ReadShort(UllrMemoryStream s)
         {
             var bytes = Read(s, 2);
             FixEndianess(bytes);
@@ -186,7 +187,7 @@ namespace StreamUllrIO
         }
 
         public static void WriteShort(
-            MemoryStream s,
+            UllrMemoryStream s,
             short value)
         {
             var bytes = BitConverter.GetBytes(value);
@@ -198,7 +199,7 @@ namespace StreamUllrIO
         // UShort
         // ------------------------------------------------------------
 
-        public static ushort ReadUShort(MemoryStream s)
+        public static ushort ReadUShort(UllrMemoryStream s)
         {
             var bytes = Read(s, 2);
             FixEndianess(bytes);
@@ -206,7 +207,7 @@ namespace StreamUllrIO
         }
 
         public static void WriteUShort(
-            MemoryStream s,
+            UllrMemoryStream s,
             ushort value)
         {
             var bytes = BitConverter.GetBytes(value);
@@ -218,7 +219,7 @@ namespace StreamUllrIO
         // Int
         // ------------------------------------------------------------
 
-        public static int ReadInt(MemoryStream s)
+        public static int ReadInt(UllrMemoryStream s)
         {
             var bytes = Read(s, 4);
             FixEndianess(bytes);
@@ -226,7 +227,7 @@ namespace StreamUllrIO
         }
 
         public static void WriteInt(
-            MemoryStream s,
+            UllrMemoryStream s,
             int value)
         {
             var bytes = BitConverter.GetBytes(value);
@@ -238,7 +239,7 @@ namespace StreamUllrIO
         // UInt
         // ------------------------------------------------------------
 
-        public static uint ReadUInt(MemoryStream s)
+        public static uint ReadUInt(UllrMemoryStream s)
         {
             var bytes = Read(s, 4);
             FixEndianess(bytes);
@@ -246,7 +247,7 @@ namespace StreamUllrIO
         }
 
         public static void WriteUInt(
-            MemoryStream s,
+            UllrMemoryStream s,
             uint value)
         {
             var bytes = BitConverter.GetBytes(value);
@@ -258,7 +259,7 @@ namespace StreamUllrIO
         // Long
         // ------------------------------------------------------------
 
-        public static long ReadLong(MemoryStream s)
+        public static long ReadLong(UllrMemoryStream s)
         {
             var bytes = Read(s, 8);
             FixEndianess(bytes);
@@ -266,7 +267,7 @@ namespace StreamUllrIO
         }
 
         public static void WriteLong(
-            MemoryStream s,
+            UllrMemoryStream s,
             long value)
         {
             var bytes = BitConverter.GetBytes(value);
@@ -278,7 +279,7 @@ namespace StreamUllrIO
         // ULong
         // ------------------------------------------------------------
 
-        public static ulong ReadULong(MemoryStream s)
+        public static ulong ReadULong(UllrMemoryStream s)
         {
             var bytes = Read(s, 8);
             FixEndianess(bytes);
@@ -286,7 +287,7 @@ namespace StreamUllrIO
         }
 
         public static void WriteULong(
-            MemoryStream s,
+            UllrMemoryStream s,
             ulong value)
         {
             var bytes = BitConverter.GetBytes(value);
@@ -298,7 +299,7 @@ namespace StreamUllrIO
         // Float
         // ------------------------------------------------------------
 
-        public static float ReadFloat(MemoryStream s)
+        public static float ReadFloat(UllrMemoryStream s)
         {
             var bytes = Read(s, 4);
             FixEndianess(bytes);
@@ -306,7 +307,7 @@ namespace StreamUllrIO
         }
 
         public static void WriteFloat(
-            MemoryStream s,
+            UllrMemoryStream s,
             float value)
         {
             var bytes = BitConverter.GetBytes(value);
@@ -318,7 +319,7 @@ namespace StreamUllrIO
         // Double
         // ------------------------------------------------------------
 
-        public static double ReadDouble(MemoryStream s)
+        public static double ReadDouble(UllrMemoryStream s)
         {
             var bytes = Read(s, 8);
             FixEndianess(bytes);
@@ -326,7 +327,7 @@ namespace StreamUllrIO
         }
 
         public static void WriteDouble(
-            MemoryStream s,
+            UllrMemoryStream s,
             double value)
         {
             var bytes = BitConverter.GetBytes(value);
@@ -338,7 +339,7 @@ namespace StreamUllrIO
         // Char
         // ------------------------------------------------------------
 
-        public static char ReadChar(MemoryStream s)
+        public static char ReadChar(UllrMemoryStream s)
         {
             var bytes = Read(s, 2);
             FixEndianess(bytes);
@@ -346,7 +347,7 @@ namespace StreamUllrIO
         }
 
         public static void WriteChar(
-            MemoryStream s,
+            UllrMemoryStream s,
             char value)
         {
             var bytes = BitConverter.GetBytes(value);
@@ -358,7 +359,7 @@ namespace StreamUllrIO
         //  Enum
         // ------------------------------------------------------------
         
-        public static T ReadEnum<T>(MemoryStream s) where T : Enum
+        public static T ReadEnum<T>(UllrMemoryStream s) where T : Enum
         {
             var i = ReadInt(s);
             if(!Enum.IsDefined(typeof(T), i))
@@ -376,7 +377,7 @@ namespace StreamUllrIO
         //  String
         // ------------------------------------------------------------
 
-        public static string ReadString(MemoryStream s)
+        public static string ReadString(UllrMemoryStream s)
         {
             var length = ReadInt(s);
             var bytes = Read(s, length);
@@ -384,7 +385,7 @@ namespace StreamUllrIO
             return result;
         }
 
-        public static void WriteString(MemoryStream s, string value)
+        public static void WriteString(UllrMemoryStream s, string value)
         {
             var bytes = Encoding.UTF8.GetBytes(value);
             WriteInt(s, bytes.Length);
@@ -395,16 +396,39 @@ namespace StreamUllrIO
         //  Class and Struct
         // ------------------------------------------------------------
 
-        public static void Serialize(MemoryStream s, object value)
+        public static void Serialize(UllrMemoryStream s, object value)
         {
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
+            if(value == null)
+            {
+                WriteBool(s, false);
+                return;
+            }
 
             SerializeValue(s, value, value.GetType());
         }
 
-        public static void SerializeValue(MemoryStream s, object value, Type type)
+        public static void SerializeValue(UllrMemoryStream s, object value, Type type)
         {
+
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
+
+            Type underlyingType = Nullable.GetUnderlyingType(type);
+            
+            if(IsNullableType(type, underlyingType))
+            {
+                bool hasValue = value !=null;
+                WriteBool(s, hasValue);
+                if (!hasValue)
+                    return;
+
+                if(underlyingType != null)
+                {
+                    type = underlyingType;
+                }
+                
+            }
+
             // Primitive types
             if (type == typeof(byte))
             {
@@ -510,7 +534,7 @@ namespace StreamUllrIO
             SerializeFields(s, value, type);
         }
 
-        private static void SerializeArray(MemoryStream s, Array array, Type type)
+        private static void SerializeArray(UllrMemoryStream s, Array array, Type type)
         {
             WriteInt(s, array.Length);
 
@@ -524,7 +548,7 @@ namespace StreamUllrIO
             }
         }
 
-        private static void SerializeList(MemoryStream s, object value, Type type)
+        private static void SerializeList(UllrMemoryStream s, object value, Type type)
         {
             var elementType = type.GetGenericArguments()[0];
 
@@ -543,7 +567,7 @@ namespace StreamUllrIO
             }
         }
 
-        private static void SerializeFields(MemoryStream s, object value, Type type)
+        private static void SerializeFields(UllrMemoryStream s, object value, Type type)
         {
             var fields = type.GetFields(
                 BindingFlags.Instance |
@@ -562,13 +586,24 @@ namespace StreamUllrIO
             }
         }
 
-        public static T Deserialize<T>(MemoryStream s)
+        public static T Deserialize<T>(UllrMemoryStream s)
         {
             return (T)DeserializeValue(s, typeof(T));
         }
 
-        private static object DeserializeValue(MemoryStream s, Type type)
+        private static object DeserializeValue(UllrMemoryStream s, Type type)
         {
+
+            Type underlyingType = Nullable.GetUnderlyingType(type);
+            if(IsNullableType(type, underlyingType))
+            {
+                bool hasValue = ReadBool(s);
+                if(!hasValue)
+                    return null;
+                if (underlyingType!=null)
+                    type = underlyingType;
+            }
+
             if (type == typeof(byte))
                 return ReadByte(s);
 
@@ -623,7 +658,7 @@ namespace StreamUllrIO
             return DeserializeFields(s, type);
         }
 
-        private static Array DeserializeArray(MemoryStream s, Type arrayType)
+        private static Array DeserializeArray(UllrMemoryStream s, Type arrayType)
         {
             var length = ReadInt(s);
 
@@ -641,7 +676,7 @@ namespace StreamUllrIO
             return array;
         }
 
-        private static object DeserializeList(MemoryStream s, Type listType)
+        private static object DeserializeList(UllrMemoryStream s, Type listType)
         {
             var elementType = listType.GetGenericArguments()[0];
 
@@ -661,7 +696,7 @@ namespace StreamUllrIO
             return list;
         }
 
-        private static object DeserializeFields(MemoryStream s, Type type)
+        private static object DeserializeFields(UllrMemoryStream s, Type type)
         {
             var instance = Activator.CreateInstance(type);
 
@@ -680,11 +715,7 @@ namespace StreamUllrIO
 
                 field.SetValue(instance, fieldValue);
             }
-
-            if (instance != null)
-                return instance;
-            else
-                return 1;
+            return instance;
         }
 
         public static void FixEndianess(byte[] value)
@@ -692,7 +723,10 @@ namespace StreamUllrIO
             if (!BitConverter.IsLittleEndian)
                 Array.Reverse(value);
         }
+
+        private static bool IsNullableType(Type type, Type underlyingType)
+        {
+            return !type.IsValueType || underlyingType != null;
+        }
     }
 }
-
-
