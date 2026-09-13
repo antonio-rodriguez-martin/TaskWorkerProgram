@@ -19,6 +19,7 @@ namespace UllrJobHandler
     {
         public int JobId;
         public object? Result;
+        public Exception? Error;
     };
 
     public struct RegisteredFunction
@@ -48,7 +49,7 @@ namespace UllrJobHandler
 
         //NOTE: Concurrent exit queue
         private static ConcurrentQueue<JobResult> resultQueue = new();
-        private static readonly ConcurrentDictionary<int, object?> _completedJobs = new();
+        private static readonly ConcurrentDictionary<int, JobResult> _completedJobs = new();
 
         public static void InitJobHandler(int workersNumber)
         {
@@ -291,42 +292,57 @@ namespace UllrJobHandler
                         JobResult result = new JobResult
                         {
                             JobId = job.JobId,
-                            Result = executionResult
+                            Result = executionResult,
+                            Error = null
                         };
                         resultQueue.Enqueue(result);
 
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Worker {workerId} Error: {ex.Message}");
+                        resultQueue.Enqueue(new JobResult
+                        {
+                            JobId = job.JobId,
+                            Result = null,
+                            Error = ex
+                        });
                     }
                 }
             }
         }
 
-        public static bool TryGetResult<T>(int jobId, out T? result)
+        public static bool TryGetResult<T>(int jobId, out T? result, out Exception? error)
         {
             while (resultQueue.TryDequeue(out JobResult jobResult))
             {
-                _completedJobs[jobResult.JobId] = jobResult.Result;
+                _completedJobs[jobResult.JobId] = jobResult;
             }
 
-            if (_completedJobs.TryRemove(jobId, out var rawResult))
+            if (_completedJobs.TryRemove(jobId, out var entry))
             {
-                if (rawResult is T t)
+                error = entry.Error;
+
+                if (entry.Result is T t)
                 {
                     result = t;
                     return true;
                 }
-                if (rawResult == null && default(T) == null)
+                if (entry.Result == null && default(T) == null)
                 {
                     result = default;
                     return true;
                 }
+
+                result = default;
+                return true;
             }
             result = default;
+            error = null;
             return false;
         }
+
+        public static bool TryGetResult<T>(int jobId, out T? result)
+            => TryGetResult<T>(jobId, out result, out _);
 
         private static void OnClientProcessExit()
         {
