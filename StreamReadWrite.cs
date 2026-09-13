@@ -401,15 +401,20 @@ namespace StreamUllrIO
         //  Class and Struct
         // ------------------------------------------------------------
 
-        public static void Serialize(UllrMemoryStream s, object value)
+        public static void Serialize(UllrMemoryStream s, object value, Type type)
         {
             if(value == null)
             {
-                WriteBool(s, false);
-                return;
+                //Checks if the type of the variable is nullable or not to apply a byte bool write
+                if (!type.IsValueType || Nullable.GetUnderlyingType(type) != null)
+                {
+                    WriteBool(s, false);
+                    return;
+                }
+                throw new InvalidOperationException($"Cannot serialize null for non-nullable type {type}");
             }
 
-            SerializeValue(s, value, value.GetType());
+            SerializeValue(s, value, type);
         }
 
         public static void SerializeValue(UllrMemoryStream s, object value, Type type)
@@ -431,7 +436,6 @@ namespace StreamUllrIO
                 {
                     type = underlyingType;
                 }
-                
             }
 
             // Primitive types
